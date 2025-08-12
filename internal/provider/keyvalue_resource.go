@@ -5,6 +5,7 @@ import (
 
 	clientv2 "go.etcd.io/etcd/client/v2"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -12,8 +13,9 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ resource.Resource              = &KeyValueResource{}
-	_ resource.ResourceWithConfigure = &KeyValueResource{}
+	_ resource.Resource                = &KeyValueResource{}
+	_ resource.ResourceWithConfigure   = &KeyValueResource{}
+	_ resource.ResourceWithImportState = &KeyValueResource{}
 )
 
 func NewKeyValueResource() resource.Resource {
@@ -222,4 +224,9 @@ func (r *KeyValueResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *KeyValueResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Retrieve import ID and save to id attribute
+	resource.ImportStatePassthroughID(ctx, path.Root("key"), req, resp)
 }
