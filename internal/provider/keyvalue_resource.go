@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	clientv2 "go.etcd.io/etcd/client/v2"
 
@@ -66,7 +67,16 @@ func (r *KeyValueResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	cfg := req.ProviderData.(*clientv2.Config)
+	cfg, ok := req.ProviderData.(*clientv2.Config)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *clientv2.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
 
 	r.cfg = cfg
 }
