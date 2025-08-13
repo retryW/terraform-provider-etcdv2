@@ -30,3 +30,11 @@ resource "etcdv2_keyvalue" "hello_world" {
 ### Read-Only
 
 - `modified_index` (Number) The index at which this resource was last modified
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import etcdv2_keyvalue.hello_world '/root/hello'
+```

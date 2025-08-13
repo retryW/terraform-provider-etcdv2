@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	clientv2 "go.etcd.io/etcd/client/v2"
 
@@ -50,6 +51,25 @@ func (d *keyValueDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 	}
 }
 
+func (d *keyValueDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	cfg, ok := req.ProviderData.(*clientv2.Config)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *clientv2.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	d.cfg = cfg
+}
+
 func (d *keyValueDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 
 	var data keyValueDataSourceModel
@@ -94,14 +114,4 @@ func (d *keyValueDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-}
-
-func (d *keyValueDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	cfg := req.ProviderData.(*clientv2.Config)
-
-	d.cfg = cfg
 }

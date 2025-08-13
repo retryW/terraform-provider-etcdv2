@@ -2,9 +2,11 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	clientv2 "go.etcd.io/etcd/client/v2"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -12,15 +14,16 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ resource.Resource              = &KeyValueResource{}
-	_ resource.ResourceWithConfigure = &KeyValueResource{}
+	_ resource.Resource                = &KeyValueResource{}
+	_ resource.ResourceWithConfigure   = &KeyValueResource{}
+	_ resource.ResourceWithImportState = &KeyValueResource{}
 )
 
 func NewKeyValueResource() resource.Resource {
 	return &KeyValueResource{}
 }
 
-// KeyValueResource defines the resource implementation
+// KeyValueResource defines the resource implementation.
 type KeyValueResource struct {
 	cfg *clientv2.Config
 }
@@ -59,12 +62,21 @@ func (r *KeyValueResource) Schema(ctx context.Context, req resource.SchemaReques
 }
 
 func (r *KeyValueResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured
+	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
-	cfg := req.ProviderData.(*clientv2.Config)
+	cfg, ok := req.ProviderData.(*clientv2.Config)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *clientv2.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
 
 	r.cfg = cfg
 }
@@ -72,15 +84,15 @@ func (r *KeyValueResource) Configure(ctx context.Context, req resource.Configure
 func (r *KeyValueResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data KeyValueResourceModel
 
-	// Read Terraform plan data into the model
+	// Read Terraform plan data into the model.
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	// If we fail to retrieve the plan data, we don't want to continue
+	// If we fail to retrieve the plan data, we don't want to continue.
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Create new etcd client from config
+	// Create new etcd client from config.
 	client, err := clientv2.New(*r.cfg)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -91,7 +103,7 @@ func (r *KeyValueResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	// Retrieve KeyAPI from client
+	// Retrieve KeyAPI from client.
 	kApi := clientv2.NewKeysAPI(client)
 
 	keyvalue, err := kApi.Create(context.Background(), data.Key.ValueString(), data.Value.ValueString())
@@ -112,14 +124,14 @@ func (r *KeyValueResource) Create(ctx context.Context, req resource.CreateReques
 func (r *KeyValueResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data KeyValueResourceModel
 
-	// Read Terraform prior state data into the model
+	// Read Terraform prior state data into the model.
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Create new etcd client from config
+	// Create new etcd client from config.
 	client, err := clientv2.New(*r.cfg)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -130,7 +142,7 @@ func (r *KeyValueResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	// Retrieve KeyAPI from client
+	// Retrieve KeyAPI from client.
 	kApi := clientv2.NewKeysAPI(client)
 
 	keyvalue, err := kApi.Get(context.Background(), data.Key.ValueString(), nil)
@@ -145,7 +157,7 @@ func (r *KeyValueResource) Read(ctx context.Context, req resource.ReadRequest, r
 	data.Value = types.StringValue(keyvalue.Node.Value)
 	data.ModifiedIndex = types.Int64Value(int64(keyvalue.Node.ModifiedIndex))
 
-	// Save updated data into Terraform state
+	// Save updated data into Terraform state.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -158,7 +170,7 @@ func (r *KeyValueResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	// Create new etcd client from config
+	// Create new etcd client from config.
 	client, err := clientv2.New(*r.cfg)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -169,7 +181,7 @@ func (r *KeyValueResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	// Retrieve KeyAPI from client
+	// Retrieve KeyAPI from client.
 	kApi := clientv2.NewKeysAPI(client)
 
 	keyvalue, err := kApi.Set(context.Background(), data.Key.ValueString(), data.Value.ValueString(), nil)
@@ -190,14 +202,14 @@ func (r *KeyValueResource) Update(ctx context.Context, req resource.UpdateReques
 func (r *KeyValueResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data KeyValueResourceModel
 
-	// Read Terraform prior state data into the model
+	// Read Terraform prior state data into the model.
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Create new etcd client from config
+	// Create new etcd client from config.
 	client, err := clientv2.New(*r.cfg)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -208,7 +220,7 @@ func (r *KeyValueResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	// Retrieve KeyAPI from client
+	// Retrieve KeyAPI from client.
 	kApi := clientv2.NewKeysAPI(client)
 
 	_, err = kApi.Delete(context.Background(), data.Key.ValueString(), nil)
@@ -220,6 +232,11 @@ func (r *KeyValueResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	// Save updated data into Terraform state
+	// Save updated data into Terraform state.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *KeyValueResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Retrieve import ID and save to id attribute.
+	resource.ImportStatePassthroughID(ctx, path.Root("key"), req, resp)
 }
