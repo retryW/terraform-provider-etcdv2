@@ -21,7 +21,7 @@ func NewKeyValueDataSource() datasource.DataSource {
 }
 
 type keyValueDataSource struct {
-	cfg *clientv2.Config
+	client clientv2.Client
 }
 
 type keyValueDataSourceModel struct {
@@ -56,41 +56,28 @@ func (d *keyValueDataSource) Configure(_ context.Context, req datasource.Configu
 		return
 	}
 
-	cfg, ok := req.ProviderData.(*clientv2.Config)
+	client, ok := req.ProviderData.(clientv2.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *clientv2.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected clientv2.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
 	}
 
-	d.cfg = cfg
+	d.client = client
 }
 
 func (d *keyValueDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 
 	var data keyValueDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	//var kApi clientv2.httpKeysAPI
-	//kApi = *d.kApi
 
-	client, err := clientv2.New(*d.cfg)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Create etcdv2 API client",
-			"An unexpected error occurred when creating the etcdv2 API client.\n\n"+
-				"etcdv2 Client Error: "+err.Error(),
-		)
+	kapi := clientv2.NewKeysAPI(d.client)
 
-		return
-	}
-
-	kApi := clientv2.NewKeysAPI(client)
-
-	keyvalue, err := kApi.Get(context.Background(), data.Key.ValueString(), nil)
+	keyvalue, err := kapi.Get(context.Background(), data.Key.ValueString(), nil)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Read etcd keyvalue",
