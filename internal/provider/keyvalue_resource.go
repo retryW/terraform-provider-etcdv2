@@ -25,7 +25,7 @@ func NewKeyValueResource() resource.Resource {
 
 // KeyValueResource defines the resource implementation.
 type KeyValueResource struct {
-	cfg *clientv2.Config
+	client clientv2.Client
 }
 
 // KeyValueResourceModel describes the resource data model.
@@ -67,18 +67,18 @@ func (r *KeyValueResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	cfg, ok := req.ProviderData.(*clientv2.Config)
+	client, ok := req.ProviderData.(clientv2.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *clientv2.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected clientv2.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
 	}
 
-	r.cfg = cfg
+	r.client = client
 }
 
 func (r *KeyValueResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -92,21 +92,10 @@ func (r *KeyValueResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	// Create new etcd client from config.
-	client, err := clientv2.New(*r.cfg)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Create etcdv2 API client",
-			"An unexpected error occurred when creating the etcdv2 API client.\n\n"+
-				"etcdv2 Client Error: "+err.Error(),
-		)
-		return
-	}
-
 	// Retrieve KeyAPI from client.
-	kApi := clientv2.NewKeysAPI(client)
+	kapi := clientv2.NewKeysAPI(r.client)
 
-	keyvalue, err := kApi.Create(context.Background(), data.Key.ValueString(), data.Value.ValueString())
+	keyvalue, err := kapi.Create(context.Background(), data.Key.ValueString(), data.Value.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Create etcd keyvalue",
@@ -131,21 +120,10 @@ func (r *KeyValueResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	// Create new etcd client from config.
-	client, err := clientv2.New(*r.cfg)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Create etcdv2 API client",
-			"An unexpected error occurred when creating the etcdv2 API client.\n\n"+
-				"etcdv2 Client Error: "+err.Error(),
-		)
-		return
-	}
-
 	// Retrieve KeyAPI from client.
-	kApi := clientv2.NewKeysAPI(client)
+	kapi := clientv2.NewKeysAPI(r.client)
 
-	keyvalue, err := kApi.Get(context.Background(), data.Key.ValueString(), nil)
+	keyvalue, err := kapi.Get(context.Background(), data.Key.ValueString(), nil)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Read etcd keyvalue",
@@ -170,21 +148,10 @@ func (r *KeyValueResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	// Create new etcd client from config.
-	client, err := clientv2.New(*r.cfg)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Create etcdv2 API client",
-			"An unexpected error occurred when creating the etcdv2 API client.\n\n"+
-				"etcdv2 Client Error: "+err.Error(),
-		)
-		return
-	}
-
 	// Retrieve KeyAPI from client.
-	kApi := clientv2.NewKeysAPI(client)
+	kapi := clientv2.NewKeysAPI(r.client)
 
-	keyvalue, err := kApi.Set(context.Background(), data.Key.ValueString(), data.Value.ValueString(), nil)
+	keyvalue, err := kapi.Set(context.Background(), data.Key.ValueString(), data.Value.ValueString(), nil)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Update etcd keyvalue",
@@ -209,21 +176,10 @@ func (r *KeyValueResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	// Create new etcd client from config.
-	client, err := clientv2.New(*r.cfg)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Create etcdv2 API client",
-			"An unexpected error occurred when creating the etcdv2 API client.\n\n"+
-				"etcdv2 Client Error: "+err.Error(),
-		)
-		return
-	}
-
 	// Retrieve KeyAPI from client.
-	kApi := clientv2.NewKeysAPI(client)
+	kapi := clientv2.NewKeysAPI(r.client)
 
-	_, err = kApi.Delete(context.Background(), data.Key.ValueString(), nil)
+	_, err := kapi.Delete(context.Background(), data.Key.ValueString(), nil)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error when trying to Delete etcd keyvalue",

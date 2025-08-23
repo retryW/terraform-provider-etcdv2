@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure implementation satisfies various provider interfaces.
@@ -111,10 +112,10 @@ func (p *etcdv2Provider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
-	var cfg *clientv2.Config
+	var cfg clientv2.Config
 
 	if (username != "") && (password != "") {
-		cfg = &clientv2.Config{
+		cfg = clientv2.Config{
 			Endpoints:               []string{host},
 			Transport:               clientv2.DefaultTransport,
 			HeaderTimeoutPerRequest: time.Second,
@@ -122,30 +123,39 @@ func (p *etcdv2Provider) Configure(ctx context.Context, req provider.ConfigureRe
 			Password:                password,
 		}
 	} else {
-		cfg = &clientv2.Config{
+		cfg = clientv2.Config{
 			Endpoints:               []string{host},
 			Transport:               clientv2.DefaultTransport,
 			HeaderTimeoutPerRequest: time.Second,
 		}
 	}
 
-	//client, err := clientv2.New(cfg)
-	//if err != nil {
-	//	resp.Diagnostics.AddError(
-	//		"Unable to Create etcdv2 API client",
-	//		"An unexpected error occurred when creating the etcdv2 API client.\n\n"+
-	//			"etcdv2 Client Error: "+err.Error(),
-	//	)
-	//
-	//	return
-	//}
+	etcdClient, err := clientv2.New(cfg)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"An unexpected error occurred when creating the etcd client",
+			"Error: "+err.Error(),
+		)
+	}
 
-	//kApi, err := clientv2.NewKeysAPI(client)
+	kapi := clientv2.NewKeysAPI(etcdClient)
+	_, err = kapi.Get(context.Background(), "/", &clientv2.GetOptions{})
+	if err != nil {
+		if !clientv2.IsKeyNotFound(err) {
+			tflog.Warn(ctx, "Could not test etcd connection", map[string]any{
+				"Error": err.Error(),
+			})
+		}
+	}
 
-	// Example client configuration for data sources and resources
-	//client := http.DefaultClient
-	resp.DataSourceData = cfg
-	resp.ResourceData = cfg
+	resp.DataSourceData = etcdClient
+	resp.ResourceData = etcdClient
+
+	tflog.Info(ctx, "Configured etcd client", map[string]any{
+		"host":     host,
+		"username": username != "",
+		"success":  true,
+	})
 }
 
 func (p *etcdv2Provider) Resources(ctx context.Context) []func() resource.Resource {
