@@ -42,6 +42,7 @@ type etcdv2ProviderModel struct {
 	Host     types.String `tfsdk:"host"`
 	Username types.String `tfsdk:"username"`
 	Password types.String `tfsdk:"password"`
+	Timeout  types.Int64  `tfsdk:"timeout"`
 }
 
 func (p *etcdv2Provider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -64,6 +65,10 @@ func (p *etcdv2Provider) Schema(ctx context.Context, req provider.SchemaRequest,
 				MarkdownDescription: "The password used for authentication",
 				Optional:            true,
 				Sensitive:           true,
+			},
+			"timeout": schema.Int64Attribute {
+				MarkdownDescription: "Maximum header timeout",
+				Optional:            true,
 			},
 		},
 	}
@@ -103,12 +108,21 @@ func (p *etcdv2Provider) Configure(ctx context.Context, req provider.ConfigureRe
 		password = config.Password.ValueString()
 	}
 
+	var timeoutSec int64 = 1
+	if !config.Timeout.IsNull() {
+		timeoutSec = config.Timeout.ValueInt64()
+	}
+	if timeoutSec <= 0 {
+		resp.Diagnostics.AddAttributeError(path.Root("timeout"), "Invalid timeout", "timeout must be > 0")
+		return
+	}
+	headerTimeout := time.Duration(timeoutSec) * time.Second
+	
 	if host == "" {
 		resp.Diagnostics.AddError(
 			"No host detected.",
 			"Ensure a host value is set either via ENV or Config",
 		)
-
 		return
 	}
 
@@ -118,7 +132,7 @@ func (p *etcdv2Provider) Configure(ctx context.Context, req provider.ConfigureRe
 		cfg = clientv2.Config{
 			Endpoints:               []string{host},
 			Transport:               clientv2.DefaultTransport,
-			HeaderTimeoutPerRequest: time.Second,
+			HeaderTimeoutPerRequest: headerTimeout,
 			Username:                username,
 			Password:                password,
 		}
@@ -126,7 +140,7 @@ func (p *etcdv2Provider) Configure(ctx context.Context, req provider.ConfigureRe
 		cfg = clientv2.Config{
 			Endpoints:               []string{host},
 			Transport:               clientv2.DefaultTransport,
-			HeaderTimeoutPerRequest: time.Second,
+			HeaderTimeoutPerRequest: headerTimeout,
 		}
 	}
 
