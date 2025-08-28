@@ -42,7 +42,7 @@ type etcdv2ProviderModel struct {
 	Host     types.String `tfsdk:"host"`
 	Username types.String `tfsdk:"username"`
 	Password types.String `tfsdk:"password"`
-	Timeout  types.int64  `tfsdk:"timeout"`
+	Timeout  types.Int64  `tfsdk:"timeout"`
 }
 
 func (p *etcdv2Provider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
