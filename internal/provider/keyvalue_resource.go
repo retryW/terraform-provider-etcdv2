@@ -125,13 +125,17 @@ func (r *KeyValueResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	keyvalue, err := kapi.Get(context.Background(), data.Key.ValueString(), nil)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Read etcd keyvalue",
-			err.Error(),
-		)
+		if !clientv2.IsKeyNotFound(err) {
+			resp.Diagnostics.AddError(
+				"Unable to Read etcd keyvalue",
+				err.Error(),
+			)
+			return
+		}
+		// Key was not found, remove from state
+		resp.State.RemoveResource(ctx)
 		return
 	}
-
 	data.Value = types.StringValue(keyvalue.Node.Value)
 	data.ModifiedIndex = types.Int64Value(int64(keyvalue.Node.ModifiedIndex))
 
@@ -181,15 +185,15 @@ func (r *KeyValueResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	_, err := kapi.Delete(context.Background(), data.Key.ValueString(), nil)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error when trying to Delete etcd keyvalue",
-			err.Error(),
-		)
-		return
+		if !clientv2.IsKeyNotFound(err) {
+			resp.Diagnostics.AddError(
+				"Error when trying to Delete etcd keyvalue",
+				err.Error(),
+			)
+			return
+		}
+		// Key was not found, which is seen as a success
 	}
-
-	// Save updated data into Terraform state.
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *KeyValueResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

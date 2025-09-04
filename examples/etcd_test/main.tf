@@ -2,7 +2,7 @@ terraform {
   required_providers {
     etcdv2 = {
       // Source code is github.com/retryW/terraform-provider-etcdv2
-      source = "github.com/retryW/etcdv2"
+      source = "retryW/etcdv2"
     }
   }
 }
