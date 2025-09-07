@@ -19,7 +19,7 @@ data "etcdv2_keyvalue" "foo" {
 
 // Create a resource (create a desired state resource)
 resource "etcdv2_keyvalue" "test_kv_resource" {
-  key   = "/root/cale/test_kv_resource"
+  key   = "/root/test/bar"
   value = "myfirstetcdkv"
 }
 

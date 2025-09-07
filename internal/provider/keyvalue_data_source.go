@@ -21,7 +21,7 @@ func NewKeyValueDataSource() datasource.DataSource {
 }
 
 type keyValueDataSource struct {
-	client clientv2.Client
+	client *clientv2.Client
 }
 
 type keyValueDataSourceModel struct {
@@ -56,7 +56,7 @@ func (d *keyValueDataSource) Configure(_ context.Context, req datasource.Configu
 		return
 	}
 
-	client, ok := req.ProviderData.(clientv2.Client)
+	client, ok := req.ProviderData.(*clientv2.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -75,7 +75,7 @@ func (d *keyValueDataSource) Read(ctx context.Context, req datasource.ReadReques
 	var data keyValueDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
-	kapi := clientv2.NewKeysAPI(d.client)
+	kapi := clientv2.NewKeysAPI(*d.client)
 
 	keyvalue, err := kapi.Get(context.Background(), data.Key.ValueString(), nil)
 	if err != nil {
@@ -88,12 +88,6 @@ func (d *keyValueDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	data.Value = types.StringValue(keyvalue.Node.Value)
 	data.ModifiedIndex = types.Int64Value(int64(keyvalue.Node.ModifiedIndex))
-
-	//keyValueState := keyValueModel{
-	//	Key:         types.StringValue(keyvalue.Node.Key),
-	//	Value:       types.StringValue(keyvalue.Node.Value),
-	//	LastUpdated: types.StringValue(string(keyvalue.Node.ModifiedIndex)),
-	//}
 
 	diags := resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
