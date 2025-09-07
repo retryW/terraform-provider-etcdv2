@@ -25,7 +25,7 @@ func NewKeyValueResource() resource.Resource {
 
 // KeyValueResource defines the resource implementation.
 type KeyValueResource struct {
-	client clientv2.Client
+	client *clientv2.Client
 }
 
 // KeyValueResourceModel describes the resource data model.
@@ -67,7 +67,7 @@ func (r *KeyValueResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(clientv2.Client)
+	client, ok := req.ProviderData.(*clientv2.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -93,7 +93,7 @@ func (r *KeyValueResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	// Retrieve KeyAPI from client.
-	kapi := clientv2.NewKeysAPI(r.client)
+	kapi := clientv2.NewKeysAPI(*r.client)
 
 	keyvalue, err := kapi.Create(context.Background(), data.Key.ValueString(), data.Value.ValueString())
 	if err != nil {
@@ -121,7 +121,7 @@ func (r *KeyValueResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 
 	// Retrieve KeyAPI from client.
-	kapi := clientv2.NewKeysAPI(r.client)
+	kapi := clientv2.NewKeysAPI(*r.client)
 
 	keyvalue, err := kapi.Get(context.Background(), data.Key.ValueString(), nil)
 	if err != nil {
@@ -153,7 +153,7 @@ func (r *KeyValueResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Retrieve KeyAPI from client.
-	kapi := clientv2.NewKeysAPI(r.client)
+	kapi := clientv2.NewKeysAPI(*r.client)
 
 	keyvalue, err := kapi.Set(context.Background(), data.Key.ValueString(), data.Value.ValueString(), nil)
 	if err != nil {
@@ -181,7 +181,7 @@ func (r *KeyValueResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 
 	// Retrieve KeyAPI from client.
-	kapi := clientv2.NewKeysAPI(r.client)
+	kapi := clientv2.NewKeysAPI(*r.client)
 
 	_, err := kapi.Delete(context.Background(), data.Key.ValueString(), nil)
 	if err != nil {

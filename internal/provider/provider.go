@@ -30,7 +30,7 @@ func New(version string) func() provider.Provider {
 	}
 }
 
-// ScaffoldingProvider defines the provider implementation.
+// etcdv2Provider defines the provider implementation.
 type etcdv2Provider struct {
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
@@ -66,7 +66,7 @@ func (p *etcdv2Provider) Schema(ctx context.Context, req provider.SchemaRequest,
 				Optional:            true,
 				Sensitive:           true,
 			},
-			"timeout": schema.Int64Attribute {
+			"timeout": schema.Int64Attribute{
 				MarkdownDescription: "Maximum header timeout",
 				Optional:            true,
 			},
@@ -117,7 +117,7 @@ func (p *etcdv2Provider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 	headerTimeout := time.Duration(timeoutSec) * time.Second
-	
+
 	if host == "" {
 		resp.Diagnostics.AddError(
 			"No host detected.",
@@ -162,8 +162,8 @@ func (p *etcdv2Provider) Configure(ctx context.Context, req provider.ConfigureRe
 		}
 	}
 
-	resp.DataSourceData = etcdClient
-	resp.ResourceData = etcdClient
+	resp.DataSourceData = &etcdClient
+	resp.ResourceData = &etcdClient
 
 	tflog.Info(ctx, "Configured etcd client", map[string]any{
 		"host":     host,
