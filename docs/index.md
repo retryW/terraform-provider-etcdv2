@@ -29,4 +29,5 @@ provider "etcdv2" {
 
 - `host` (String) The host address of your etcd server
 - `password` (String, Sensitive) The password used for authentication
+- `timeout` (Number) Maximum header timeout
 - `username` (String) The username used for authentication

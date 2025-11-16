@@ -175,6 +175,8 @@ func (p *etcdv2Provider) Configure(ctx context.Context, req provider.ConfigureRe
 func (p *etcdv2Provider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewKeyValueResource,
+		NewRoleResource,
+		NewUserResource,
 	}
 }
 
